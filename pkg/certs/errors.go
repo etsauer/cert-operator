@@ -11,7 +11,7 @@ func NewCertError(message string) *CertError {
 	}
 }
 
-func (e *CertError) Error() string {
+func (e CertError) Error() string {
 	return e.message
 }
 
@@ -26,7 +26,7 @@ func NewErrBadHost(message string) *ErrBadHost {
 	}
 }
 
-func (e *ErrBadHost) Error() string {
+func (e ErrBadHost) Error() string {
 	return e.message
 }
 
@@ -41,7 +41,7 @@ func NewErrPrivateKey(message string) *ErrPrivateKey {
 	}
 }
 
-func (e *ErrPrivateKey) Error() string {
+func (e ErrPrivateKey) Error() string {
 	return e.message
 }
 
@@ -56,6 +56,6 @@ func NewErrFileWriteFail(message string) *ErrFileWriteFail {
 	}
 }
 
-func (e *ErrFileWriteFail) Error() string {
+func (e ErrFileWriteFail) Error() string {
 	return e.message
 }

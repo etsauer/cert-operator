@@ -1,0 +1,18 @@
+---
+general:
+  annotations:
+provider:
+  kind: ipa
+  url: https://idm-1.etl.rht-labs.com/ipa
+  username: esauer
+  password: 5kzUkWR38twp
+  realm: ETL.RHT-LABS.COM
+  ca_trust: false
+  bits: 2048
+  attrs:
+    country: AU
+    province: Some-State
+    locality: MyCity
+    organization: Company Ltd
+    ou: IT
+    email: test@example.com

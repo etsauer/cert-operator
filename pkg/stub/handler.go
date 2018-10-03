@@ -22,9 +22,19 @@ func NewHandler(config Config) sdk.Handler {
 	var provider certs.Provider
 	switch config.Provider.Kind {
 	case "none":
-		provider = new(certs.NoneProvider)
+		provider = &certs.NoneProvider{}
 	case "self-signed":
-		provider = new(certs.SelfSignedProvider)
+		provider = &certs.SelfSignedProvider{}
+	case "ipa":
+		provider = certs.NewIPAProvider(
+			config.Provider.Url,
+			config.Provider.Bits,
+			config.Provider.Ca_trust,
+			config.Provider.Username,
+			config.Provider.Password,
+			config.Provider.Realm,
+			config.Provider.Attributes,
+		)
 	default:
 		panic("There was a problem detecting which provider to configure. " +
 			"Provider kind `" + config.Provider.Kind + "` is invalid.")
@@ -70,7 +80,11 @@ func (h *Handler) handleRoute(route *v1.Route) error {
 		h.notify(message)
 
 		// Retreive cert from provider
-		keyPair := h.getCert(route.Spec.Host)
+		keyPair, err := h.getCert(route.Spec.Host)
+		if err != nil {
+			logrus.Errorf("Failed to provision certificate: " + err.Error())
+			return nil
+		}
 
 		var routeCopy *v1.Route
 		routeCopy = route.DeepCopy()
@@ -109,7 +123,11 @@ func (h *Handler) handleService(service *corev1.Service) error {
 		host := service.ObjectMeta.Name + "." + service.ObjectMeta.Namespace + ".svc.cluster.local"
 
 		// Retreive cert from provider
-		keyPair := h.getCert(host)
+		keyPair, err := h.getCert(host)
+		if err != nil {
+			logrus.Errorf("Failed to provision certificate: \n\t" + err.Error())
+			return nil
+		}
 
 		var svcCopy *corev1.Service
 		svcCopy = service.DeepCopy()
@@ -131,7 +149,7 @@ func (h *Handler) handleService(service *corev1.Service) error {
 			Data: dm,
 		}
 
-		err := sdk.Create(certSec)
+		err = sdk.Create(certSec)
 		if err != nil {
 			logrus.Errorf("Failed to create secret: " + err.Error())
 			return err
@@ -176,10 +194,10 @@ func (h *Handler) notify(message string) {
 	}
 }
 
-func (h *Handler) getCert(host string) certs.KeyPair {
+func (h *Handler) getCert(host string) (certs.KeyPair, error) {
 	oneYear, timeErr := time.ParseDuration("8760h")
 	if timeErr != nil {
-		logrus.Errorf("Failed to parse time duratio during getCert: " + timeErr.Error())
+		return certs.KeyPair{}, certs.NewCertError("Failed to parse time duratio during getCert: \n\t" + timeErr.Error())
 	}
 
 	// Retreive cert from provider
@@ -188,9 +206,9 @@ func (h *Handler) getCert(host string) certs.KeyPair {
 		time.Now().Format(timeFormat),
 		oneYear, false, 2048, "")
 	if err != nil {
-		logrus.Errorf("Failed to provision key pair: " + err.Error())
+		return certs.KeyPair{}, certs.NewCertError("Failed to provision key pair: \n\t" + err.Error())
 	}
-	return keyPair
+	return keyPair, nil
 }
 
 // update route def
